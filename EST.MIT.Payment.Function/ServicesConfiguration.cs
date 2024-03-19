@@ -1,11 +1,10 @@
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Configuration;
 using System;
-using Azure.Storage.Queues;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Azure.Identity;
+using Azure.Messaging.ServiceBus;
 using EST.MIT.Payment.Interfaces;
 using EST.MIT.Payment.Services;
-using Azure.Messaging.ServiceBus;
 
 namespace EST.MIT.Payment.Function.Services
 {
@@ -27,33 +26,32 @@ namespace EST.MIT.Payment.Function.Services
                 var queueName = configuration.GetSection("EventQueueName").Value;
                 if (IsManagedIdentity(storageAccountCredential))
                 {
-                    var queueServiceUri = configuration.GetSection("QueueConnectionString:QueueServiceUri").Value;
-                    var queueUrl = new Uri($"{queueServiceUri}{queueName}");
-                    Console.WriteLine($"Startup.QueueClient using Managed Identity with url {queueUrl}");
-                    return new EventQueueService(new QueueClient(queueUrl, new DefaultAzureCredential()));
+                    var serviceBusNamespace = configuration.GetSection("QueueConnectionString:FullyQualifiedNamespace").Value;
+                    Console.WriteLine($"Startup.ServiceBusClient using Managed Identity with namespace {serviceBusNamespace}");
+                    return new EventQueueService(new ServiceBus(queueName, new ServiceBusClient(serviceBusNamespace, new DefaultAzureCredential())));
                 }
                 else
                 {
-                    return new EventQueueService(new QueueClient(configuration.GetSection("QueueConnectionString").Value, queueName));
+                    return new EventQueueService(new ServiceBus(queueName, new ServiceBusClient(configuration.GetSection("QueueConnectionString").Value)));
                 }
             });
 
             services.AddSingleton<IServiceBus>(_ =>
             {
-                var storageAccountCredential = configuration.GetSection("ServiceBusConnectionString:Credential").Value;
-                var serviceBusQueueName = configuration.GetSection("ServiceBusQueueName").Value;
+                var storageAccountCredential = configuration.GetSection("QueueConnectionString:Credential").Value;
+                var paymentHubQueueName = configuration.GetSection("PaymentHubQueueName").Value;
                 if (IsManagedIdentity(storageAccountCredential))
                 {
-                    var serviceBusNamespace = configuration.GetSection("ServiceBusConnectionString:FullyQualifiedNamespace").Value;
+                    var serviceBusNamespace = configuration.GetSection("QueueConnectionString:FullyQualifiedNamespace").Value;
                     Console.WriteLine($"Startup.ServiceBusClient using Managed Identity with namespace {serviceBusNamespace}");
                     var serviceBusClient = new ServiceBusClient(serviceBusNamespace, new DefaultAzureCredential());
-                    return new ServiceBus(serviceBusQueueName, serviceBusClient);
+                    return new ServiceBus(paymentHubQueueName, serviceBusClient);
                 }
                 else
                 {
-                    var serviceBusConnString = configuration.GetSection("ServiceBusConnectionString").Value;
+                    var serviceBusConnString = configuration.GetSection("QueueConnectionString").Value;
                     var serviceBusClient = new ServiceBusClient(serviceBusConnString);
-                    return new ServiceBus(serviceBusQueueName, serviceBusClient);
+                    return new ServiceBus(paymentHubQueueName, serviceBusClient);
                 }
             });
         }

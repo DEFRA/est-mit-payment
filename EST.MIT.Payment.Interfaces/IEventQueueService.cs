@@ -2,6 +2,6 @@
 {
     public interface IEventQueueService
     {
-        Task CreateMessage(string status, string action, string message, string data);
+        Task CreateMessage(string id, string status, string action, string message, string data);
     }
 }

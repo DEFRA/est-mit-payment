@@ -8,10 +8,16 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 var host = new HostBuilder()
-    .ConfigureAppConfiguration(config => config
-                    .SetBasePath(Directory.GetCurrentDirectory())
-                    .AddJsonFile("local.settings.json", optional: true, reloadOnChange: true)
-                    .AddEnvironmentVariables())
+    .ConfigureAppConfiguration((hostContext, config) =>
+    {
+        if(hostContext.HostingEnvironment.IsDevelopment())
+        {
+            Console.WriteLine("STARTING IN DEVELOPMENT MODE");
+            config.AddUserSecrets<Program>();
+        }
+        config.SetBasePath(Directory.GetCurrentDirectory());
+        config.AddEnvironmentVariables();
+    })
     .ConfigureFunctionsWorkerDefaults()
     .ConfigureServices(services =>
     {

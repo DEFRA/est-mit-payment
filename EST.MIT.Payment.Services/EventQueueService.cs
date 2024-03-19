@@ -1,29 +1,27 @@
-﻿using Azure;
-using Azure.Storage.Queues;
-using Azure.Storage.Queues.Models;
+﻿using Azure.Messaging.ServiceBus;
 using EST.MIT.Payment.Interfaces;
 using EST.MIT.Payment.Models;
-using System.Text;
 using System.Text.Json;
 
 namespace EST.MIT.Payment.Services
 {
     public class EventQueueService : IEventQueueService
     {
-        private readonly QueueClient _queueClient;
+        private readonly IServiceBus _serviceBus;
 
-        public EventQueueService(QueueClient queueClient)
+        public EventQueueService(IServiceBus serviceBus)
         {
-            _queueClient = queueClient;
+            _serviceBus = serviceBus;
         }
 
-        public async Task CreateMessage(string status, string action, string message, string data)
+        public async Task CreateMessage(string id, string status, string action, string message, string data)
         {
             var eventRequest = new Event()
             {
                 Name = "Payments",
                 Properties = new EventProperties()
                 {
+                    Id = id,
                     Status = status,
                     Checkpoint = "Payment",
                     Action = new EventAction()
@@ -38,12 +36,10 @@ namespace EST.MIT.Payment.Services
 
             try
             {
-                var bytes = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(eventRequest));
-                await _queueClient.SendMessageAsync(Convert.ToBase64String(bytes));
+                await _serviceBus.SendServiceBus(JsonSerializer.Serialize(eventRequest).EncodeMessage());
 
             }
-            catch (RequestFailedException ex)
-                    when (ex.ErrorCode == QueueErrorCode.QueueAlreadyExists)
+            catch (ServiceBusException ex) when (ex.Reason == ServiceBusFailureReason.MessagingEntityAlreadyExists)
             {
                 // Ignore any errors if the queue already exists
             }

@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using EST.MIT.Payment.Function.Functions;
 using EST.MIT.Payment.Models;
 using EST.MIT.Payment.Interfaces;
+using Azure.Messaging.ServiceBus;
 
 namespace EST.MIT.Payment.Function.Tests;
 public class CreatePaymentTests
@@ -92,7 +93,8 @@ public class CreatePaymentTests
             SchemeType = "AD"
         };
 
-        string message = JsonConvert.SerializeObject(paymentRequest);
+        var messageBody = BinaryData.FromString(JsonConvert.SerializeObject(paymentRequest));
+        var message = ServiceBusModelFactory.ServiceBusReceivedMessage(body: messageBody);
 
         var result = _createPayment?.Run(message);
 
@@ -162,7 +164,8 @@ public class CreatePaymentTests
             }
         };
 
-        string message = JsonConvert.SerializeObject(InvalidPaymentRequest);
+        var messageBody = BinaryData.FromString(JsonConvert.SerializeObject(InvalidPaymentRequest));
+        var message = ServiceBusModelFactory.ServiceBusReceivedMessage(body: messageBody);
 
         _createPayment?.Run(message);
 
@@ -186,7 +189,8 @@ public class CreatePaymentTests
     [Fact]
     public void Given_Function_Receives_Null_PaymentRequest_Message()
     {
-        string? message = null;
+        var messageBody = BinaryData.FromString(JsonConvert.SerializeObject(null));
+        var message = ServiceBusModelFactory.ServiceBusReceivedMessage(body: messageBody);
 
         _createPayment?.Run(message);
 
@@ -205,7 +209,8 @@ public class CreatePaymentTests
     [Fact]
     public void Given_Function_Receives_Invalid_PaymentRequest_Message()
     {
-        string message = "{ 'invalid': 'json' }";
+        var messageBody = BinaryData.FromString(JsonConvert.SerializeObject("{'invalid' : 'json'}"));
+        var message = ServiceBusModelFactory.ServiceBusReceivedMessage(body: messageBody);
 
         _createPayment?.Run(message);
 

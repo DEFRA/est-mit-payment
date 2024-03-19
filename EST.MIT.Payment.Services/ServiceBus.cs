@@ -25,7 +25,7 @@ namespace EST.MIT.Payment.Services
             {
                 _sender = _client.CreateSender(_queueName);
 
-                var sbMessage = new ServiceBusMessage(Encoding.UTF8.GetBytes(message));
+                var sbMessage = new ServiceBusMessage(message);
 
                 await _sender.SendMessageAsync(sbMessage);
             }
